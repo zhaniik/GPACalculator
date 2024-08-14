@@ -1,9 +1,6 @@
 ﻿using GPACalculator.Models;
 using GPACalculator.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
 
 namespace GPACalculator.Controllers
 {
@@ -12,11 +9,13 @@ namespace GPACalculator.Controllers
     public class GPACalculatorController : ControllerBase
     {
         private readonly GPACalculatorService _gpaCalculatorService;
+        private readonly DbManager _dbManager;
         private readonly ILogger<GPACalculatorController> _logger;
 
         public GPACalculatorController(ILogger<GPACalculatorController> logger)
         {
             _gpaCalculatorService = new GPACalculatorService();
+            _dbManager= new DbManager();
             _logger = logger;
         }
 
@@ -28,7 +27,6 @@ namespace GPACalculator.Controllers
             {
                 return BadRequest("Course list is null or empty.");
             }
-
             try
             {
                 double gpa = _gpaCalculatorService.CalculateGPA(courses);
@@ -49,6 +47,17 @@ namespace GPACalculator.Controllers
             return Ok(courses);
         }
 
+
+        [HttpGet]
+        [Route("GetName")]
+        public IActionResult GetName()
+        {
+            var courses = _dbManager.GetNameOfCoursesData();
+            return Ok(courses);
+        }
+
+
+
         [HttpGet]
         [Route("GetAvailableCourses")]
         public IActionResult GetAvailableCourses()
@@ -65,7 +74,6 @@ namespace GPACalculator.Controllers
             {
                 return BadRequest("Course name is null or empty.");
             }
-
             try
             {
                 _gpaCalculatorService.DeleteCourse(name);
@@ -86,7 +94,6 @@ namespace GPACalculator.Controllers
             {
                 return BadRequest("Course is null.");
             }
-
             try
             {
                 _gpaCalculatorService.UpdateCourse(course);

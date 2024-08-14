@@ -1,6 +1,4 @@
-﻿using System.Collections.ObjectModel;
-
-namespace GPACalculator.Models
+﻿namespace GPACalculator.Models
 {
     public class Course
     {
@@ -25,7 +23,7 @@ namespace GPACalculator.Models
         };
 
         public static readonly Dictionary<string, int> nameofCourses = new Dictionary<string, int>
-        {
+        { 
             {"Algebra",  4},
             {"Physics",  4},
             {"PE",       2},
@@ -33,7 +31,8 @@ namespace GPACalculator.Models
             {"English",  3},
             {"Geometry", 4}
         };
-        public static List<Course> courses = new List<Course>();
 
+        public static List<Course> courses = new List<Course>();
     }
 }
+
