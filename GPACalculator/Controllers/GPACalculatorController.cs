@@ -1,7 +1,6 @@
 ﻿using GPACalculator.Models;
 using GPACalculator.Services;
 using Microsoft.AspNetCore.Mvc;
-
 namespace GPACalculator.Controllers
 {
     [Route("api/[controller]")]
@@ -11,14 +10,12 @@ namespace GPACalculator.Controllers
         private readonly GPACalculatorService _gpaCalculatorService;
         private readonly DbManager _dbManager;
         private readonly ILogger<GPACalculatorController> _logger;
-
         public GPACalculatorController(ILogger<GPACalculatorController> logger)
         {
             _gpaCalculatorService = new GPACalculatorService();
             _dbManager= new DbManager();
             _logger = logger;
         }
-
         [HttpPost]
         [Route("AddGrade")]
         public IActionResult AddGrade([FromBody] List<Course> courses)
@@ -38,7 +35,6 @@ namespace GPACalculator.Controllers
                 return BadRequest(ex.Message);
             }
         }
-
         [HttpGet]
         [Route("GetCourses")]
         public IActionResult GetCourses()
@@ -46,8 +42,6 @@ namespace GPACalculator.Controllers
             var courses = _gpaCalculatorService.GetCourses();
             return Ok(courses);
         }
-
-
         [HttpGet]
         [Route("GetName")]
         public IActionResult GetName()
@@ -55,9 +49,6 @@ namespace GPACalculator.Controllers
             var courses = _dbManager.GetNameOfCoursesData();
             return Ok(courses);
         }
-
-
-
         [HttpGet]
         [Route("GetAvailableCourses")]
         public IActionResult GetAvailableCourses()
@@ -65,9 +56,8 @@ namespace GPACalculator.Controllers
             var availableCourses = _gpaCalculatorService.GetAvailableCourses();
             return Ok(availableCourses);
         }
-
         [HttpDelete]
-        [Route("DeleteCourse/{name}")]
+        [Route("DeleteCourse")]
         public IActionResult DeleteCourse(string name)
         {
             if (string.IsNullOrWhiteSpace(name))
@@ -85,7 +75,6 @@ namespace GPACalculator.Controllers
                 return BadRequest(ex.Message);
             }
         }
-
         [HttpPut]
         [Route("UpdateCourse")]
         public IActionResult UpdateCourse([FromBody] Course course)

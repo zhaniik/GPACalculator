@@ -1,7 +1,6 @@
 ﻿using GPACalculator.Models;
 using System.Data;
 using System.Data.SqlClient;
-using GPACalculator.Data;
 namespace GPACalculator.Services
 {
     public class DbManager
@@ -23,92 +22,183 @@ namespace GPACalculator.Services
             try
             {
                 connection.Open();
-                command.CommandText = "SELECT name_of_courses FROM Courses1"; 
-                //command.CommandText = "SELECT name_of_courses FROM Courses1 WHERE name_of_courses = @name_of_courses AND credits = @credits";
-                //command.Parameters.AddWithValue("@name_of_courses", name_of_courses.Text);
-                //command.Parameters.AddWithValue("@credits", credits.Text);
-
+                command.CommandText = "SELECT name_of_courses, credits FROM Courses1";
                 SqlDataReader reader = command.ExecuteReader();
                 if (reader.HasRows)
                 {
                     while (reader.Read())
                     {
-                        result.Add(reader["name_of_courses"].ToString()!);
+                        string courseName = reader["name_of_courses"].ToString()!;
+                        int credits = reader.GetInt32(reader.GetOrdinal("credits"));
+                        result.Add($"Course: {courseName}, Credits: {credits}");
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception)
+            { }
+            finally
             {
-                return e.Message;
+                connection.Close();
+            }
+            return string.Join("\n", result);
+        }
+        public List<Course> GetCourses()
+        {
+            var courses = new List<Course>();
+            try
+            {
+                connection.Open();
+                command.CommandText = "SELECT name_of_courses, credits FROM Courses1";
+                SqlDataReader reader = command.ExecuteReader(); 
+                while (reader.Read())
+                {
+                    courses.Add(new Course(
+                        reader["name_of_courses"]?.ToString() ?? string.Empty,
+                        reader["credits"]?.ToString() ?? string.Empty
+                    ));
+                }
+            }
+            catch (Exception)
+            {
+                throw;
             }
             finally
             {
                 connection.Close();
             }
-            return string.Join(", ", result); 
+            return courses;
         }
-
-
-    }
-    public class GPACalculatorService 
-    {    
-        public double CalculateGPA(List<Course> pcourses)
+        public Dictionary<string, int> GetAvailableCourses()
         {
-            StaticData.courses = pcourses;
+            var courses = new Dictionary<string, int>();
+            try
+            {
+                connection.Open();
+                command.CommandText = "SELECT name_of_courses, credits FROM Courses1";
+                SqlDataReader reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    courses.Add(reader["name_of_courses"].ToString()!, reader.GetInt32(reader.GetOrdinal("credits")));
+                }
+            }
+            catch (Exception)
+            { }
+            finally
+            {
+                connection.Close();
+            }
+            return courses;
+        }
+        public void DeleteCourse(string name)
+        {
+            try
+            {
+                connection.Open();
+                command.CommandText = "DELETE FROM Courses1 WHERE name_of_courses = @name";
+                command.Parameters.AddWithValue("@name", name);
+                int rowsAffected = command.ExecuteNonQuery();
+                if (rowsAffected == 0)
+                {
+                    throw new Exception($"Course with name {name} not found.");
+                }
+            }
+            catch (Exception)
+            { }
+            finally
+            {
+                connection.Close();
+            }
+        }
+        public void UpdateCourse(Course course)
+        {
+            try
+            {
+                connection.Open();
+                command.CommandText = "UPDATE Courses1 SET grade = @grade WHERE name_of_courses = @name";
+                command.Parameters.AddWithValue("@name", course.Name);
+                command.Parameters.AddWithValue("@grade", course.Grade);
+                int rowsAffected = command.ExecuteNonQuery();
+                if (rowsAffected == 0)
+                {
+                    throw new ArgumentException($"Course with name {course.Name} not found.");
+                }
+            }
+            catch (Exception)
+            { }
+            finally
+            {
+                connection.Close();
+            }
+        }
+    }
+    public class GPACalculatorService
+    {
+        private readonly DbManager _dbManager;
+        public GPACalculatorService()
+        {
+            _dbManager = new DbManager();
+        }
+        public double CalculateGPA(List<Course> courses)
+        {
+            var courseDict = _dbManager.GetAvailableCourses();
             double totalPoints = 0;
             int totalCredits = 0;
-
-            foreach (var course in StaticData.courses)
+            foreach (var course in courses)
             {
-                if (StaticData.gradePoints.ContainsKey(course.Grade) && StaticData.nameofCourses.ContainsKey(course.Name))
+                if (courseDict.ContainsKey(course.Name))
                 {
-                    totalPoints += StaticData.gradePoints[course.Grade] * StaticData.nameofCourses[course.Name];
-                    totalCredits += StaticData.nameofCourses[course.Name];
+                    int credits = courseDict[course.Name];
+                    double gradePoint = GetGradePoint(course.Grade);
+                    totalPoints += gradePoint * credits;
+                    totalCredits += credits;
                 }
                 else
                 {
-                    throw new ArgumentException($"Invalid grade or course name: {course.Grade} or {course.Name}");
+                    throw new ArgumentException($"Invalid course name: {course.Name}");
                 }
             }
             return totalCredits == 0 ? 0 : Math.Round(totalPoints / totalCredits, 3);
         }
-
-
-
-
-
-
+        private double GetGradePoint(string grade)
+        {
+            return grade switch
+            {
+                "A+" => 4.3,
+                "A" => 4.0,
+                "A-" => 3.7,
+                "B+" => 3.3,
+                "B" => 3.0,
+                "B-" => 2.7,
+                "C+" => 2.3,
+                "C" => 2.0,
+                "C-" => 1.7,
+                "D+" => 1.3,
+                "D" => 1.0,
+                "D-" => 0.7,
+                "F" => 0.0,
+                //        {"A+", 4.3}, {"A", 4.0}, {"A-", 3.7},
+                //        {"B+", 3.3}, {"B", 3.0}, {"B-", 2.7},
+                //        {"C+", 2.3}, {"C", 2.0}, {"C-", 1.7},
+                //        {"D+", 1.3}, {"D", 1.0}, {"D-", 0.7},
+                //        {"F" , 0.0}
+                _ => throw new ArgumentException($"Invalid grade: {grade}")
+            };
+        }
         public List<Course> GetCourses()
         {
-            return StaticData.courses;
+            return _dbManager.GetCourses();
         }
-
         public Dictionary<string, int> GetAvailableCourses()
         {
-            return StaticData.nameofCourses;
+            return _dbManager.GetAvailableCourses();
         }
-
         public void DeleteCourse(string name)
         {
-            var course = StaticData.nameofCourses.FirstOrDefault(c => c.Key.Equals(name, StringComparison.OrdinalIgnoreCase));
-            if (course.Key == "")
-            {
-                throw new Exception($"Course with name {name} not found.");
-            }
-            var result = StaticData.nameofCourses.Remove(course.Key);
+            _dbManager.DeleteCourse(name);
         }
         public void UpdateCourse(Course course)
         {
-            var existingCourse = StaticData.courses.FirstOrDefault(c => c.Name.Equals(course.Name, StringComparison.OrdinalIgnoreCase));
-            if (existingCourse == null)
-            {
-                throw new ArgumentException($"Course with name {course.Name} not found.");
-            }
-            if (!StaticData.gradePoints.ContainsKey(course.Grade))
-            {
-                throw new ArgumentException($"Invalid grade: {course.Grade}");
-            }
-            existingCourse.Grade = course.Grade;
+            _dbManager.UpdateCourse(course);
         }
     }
 }
