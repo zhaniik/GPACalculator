@@ -13,7 +13,7 @@ namespace GPACalculator.Controllers
         public GPACalculatorController(ILogger<GPACalculatorController> logger)
         {
             _gpaCalculatorService = new GPACalculatorService();
-            _dbManager= new DbManager();
+            _dbManager = new DbManager();
             _logger = logger;
         }
         [HttpPost]
@@ -43,13 +43,6 @@ namespace GPACalculator.Controllers
             return Ok(courses);
         }
         [HttpGet]
-        [Route("GetName")]
-        public IActionResult GetName()
-        {
-            var courses = _dbManager.GetNameOfCoursesData();
-            return Ok(courses);
-        }
-        [HttpGet]
         [Route("GetAvailableCourses")]
         public IActionResult GetAvailableCourses()
         {
@@ -58,15 +51,15 @@ namespace GPACalculator.Controllers
         }
         [HttpDelete]
         [Route("DeleteCourse")]
-        public IActionResult DeleteCourse(string name)
+        public IActionResult DeleteCourse(int id)
         {
-            if (string.IsNullOrWhiteSpace(name))
+            if (id == 0)
             {
                 return BadRequest("Course name is null or empty.");
             }
             try
             {
-                _gpaCalculatorService.DeleteCourse(name);
+                _dbManager.DeleteCourse(id);
                 return Ok(new { Message = "Course deleted successfully" });
             }
             catch (Exception ex)
@@ -75,23 +68,63 @@ namespace GPACalculator.Controllers
                 return BadRequest(ex.Message);
             }
         }
-        [HttpPut]
-        [Route("UpdateCourse")]
-        public IActionResult UpdateCourse([FromBody] Course course)
+        [HttpDelete]
+        [Route("DeleteGrade")]
+        public IActionResult DeleteGrade(int id)
         {
-            if (course == null)
+            if (id == 0)
+            {
+                return BadRequest("Course ID is invalid.");
+            }
+            try
+            {
+                _dbManager.DeleteGrade(id); 
+                return Ok(new { Message = "Grade deleted successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Invalid course ID in DeleteGrade");
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPut]
+        [Route("AddCourse")]
+        public IActionResult AddCourse([FromBody] AddCourse updatedCourse)
+        {
+            if (updatedCourse == null)
             {
                 return BadRequest("Course is null.");
             }
             try
             {
-                _gpaCalculatorService.UpdateCourse(course);
+                _gpaCalculatorService.UpdateCourse(updatedCourse);
                 return Ok(new { Message = "Course updated" });
             }
             catch (ArgumentException ex)
             {
                 _logger.LogError(ex, "Invalid data in UpdateCourse");
                 return BadRequest(ex.Message);
+            }
+        }
+        [HttpPut]
+        [Route("UpdateCourse")]
+        public IActionResult UpdateCourse([FromBody] AddCourse updatedCourse)
+        {
+            if (updatedCourse == null)
+            {
+                return BadRequest("Course is null.");
+            }
+            try
+            {
+                _dbManager.UpdateCourse(updatedCourse);
+                return Ok(new { Message = "Course updated" });
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "Invalid data in UpdateCourse");
+                return BadRequest(ex.Message);
+
             }
         }
     }

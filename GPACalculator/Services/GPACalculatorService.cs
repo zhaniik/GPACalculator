@@ -89,17 +89,17 @@ namespace GPACalculator.Services
             }
             return courses;
         }
-        public void DeleteCourse(string name)
+        public void DeleteCourse(int id)
         {
             try
             {
                 connection.Open();
-                command.CommandText = "DELETE FROM Courses1 WHERE name_of_courses = @name";
-                command.Parameters.AddWithValue("@name", name);
+                command.CommandText = "DELETE FROM Courses1 WHERE id = @id";
+                command.Parameters.AddWithValue("@id", id);
                 int rowsAffected = command.ExecuteNonQuery();
                 if (rowsAffected == 0)
                 {
-                    throw new Exception($"Course with name {name} not found.");
+                    throw new Exception($"Course with name {id} not found.");
                 }
             }
             catch (Exception)
@@ -109,27 +109,94 @@ namespace GPACalculator.Services
                 connection.Close();
             }
         }
-        public void UpdateCourse(Course course)
+        public void DeleteGrade(int id)
         {
             try
             {
                 connection.Open();
-                command.CommandText = "UPDATE Courses1 SET grade = @grade WHERE name_of_courses = @name";
-                command.Parameters.AddWithValue("@name", course.Name);
-                command.Parameters.AddWithValue("@grade", course.Grade);
+                command.CommandText = "UPDATE Courses1 SET grade = NULL WHERE id = @id";
+                command.Parameters.Clear();
+                command.Parameters.AddWithValue("@id", id);
                 int rowsAffected = command.ExecuteNonQuery();
                 if (rowsAffected == 0)
                 {
-                    throw new ArgumentException($"Course with name {course.Name} not found.");
+                    throw new Exception($"Course with id {id} not found.");
                 }
             }
-            catch (Exception)
-            { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred: {ex.Message}");
+            }
             finally
             {
                 connection.Close();
             }
         }
+
+        public void AddCourse(AddCourse addCourse)
+        {
+            try
+            {
+                connection.Open();
+                command.CommandText = "SELECT COUNT(*) FROM Courses1 WHERE name_of_courses = @name";
+                command.Parameters.Clear(); 
+                command.Parameters.AddWithValue("@name", addCourse.Name);
+                int count = (int)command.ExecuteScalar();
+                if (count > 0)
+                {
+                    command.CommandText = "UPDATE Courses1 SET credits = @credits WHERE name_of_courses = @name";
+                }
+                else
+                {
+                    command.CommandText = "INSERT INTO Courses1 (id, name_of_courses, credits, grade) VALUES (@id, @name, @credits, @grade)";
+                    command.Parameters.AddWithValue("@id", addCourse.Id); 
+                }
+                command.Parameters.AddWithValue("@credits", addCourse.Credits);
+                command.Parameters.AddWithValue("@grade", addCourse.Grade);
+                command.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred: {ex.Message}");
+            }
+            finally
+            {
+                connection.Close();
+            }
+        }
+        public void UpdateCourse(AddCourse updateCourse)
+        {
+            try
+            {
+                connection.Open();
+                command.CommandText = "SELECT COUNT(*) FROM Courses1 WHERE id = @id";
+                command.Parameters.Clear();
+                command.Parameters.AddWithValue("@id", updateCourse.Id);
+                int count = (int)command.ExecuteScalar();
+
+                if (count > 0)
+                {
+                    command.CommandText = "UPDATE Courses1 SET name_of_courses = @name, credits = @credits, grade = @grade WHERE id = @id";
+                    command.Parameters.AddWithValue("@name", updateCourse.Name);
+                    command.Parameters.AddWithValue("@credits", updateCourse.Credits);
+                    command.Parameters.AddWithValue("@grade", updateCourse.Grade);
+                    command.ExecuteNonQuery();
+                }
+                else
+                {
+                    Console.WriteLine("Course not found, unable to update.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred: {ex.Message}");
+            }
+            finally
+            {
+                connection.Close();
+            }
+        }
+
     }
     public class GPACalculatorService
     {
@@ -192,13 +259,13 @@ namespace GPACalculator.Services
         {
             return _dbManager.GetAvailableCourses();
         }
-        public void DeleteCourse(string name)
+        public void DeleteCourse(int id)
         {
-            _dbManager.DeleteCourse(name);
+            _dbManager.DeleteCourse(id);
         }
-        public void UpdateCourse(Course course)
+        public void UpdateCourse(AddCourse addCourse)
         {
-            _dbManager.UpdateCourse(course);
+            _dbManager.AddCourse(addCourse);
         }
     }
 }
